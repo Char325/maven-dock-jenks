@@ -48,8 +48,8 @@ pipeline {
             }
             steps {
                 script {
-                    sh 'bash -c "docker build -t my-app:prod ."'
-                    sh 'bash -c "docker run --name my-app-prod -d my-app:prod"'
+                    sh 'docker build -t my-app:prod .'
+                    sh 'docker run --name my-app-prod -d my-app:prod'
                 }
             }
         }
