@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // Explicitly set BRANCH_NAME for testing
-        BRANCH_NAME = "${env.BRANCH_NAME}"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -13,22 +8,32 @@ pipeline {
             }
         }
 
-        stage('Debug Environment') {
+        stage('Build') {
             steps {
                 script {
-                    // Print the branch name to verify it's correctly set
-                    sh 'bash -c "echo Branch name is: ${BRANCH_NAME}"'
+                    docker.image('maven:3.6.3-jdk-11').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+                        if (env.BRANCH_NAME == 'main') {
+                            sh 'mvn clean package -Pdevelopment'
+                        } 
+                        else if(env.BRANCH_NAME= 'staging'){
+                            sh 'mvn clean package -Pstaging'
+                        }
+                        else if(env.BRANCH_NAME= 'production'){
+                            sh 'mvn clean package -Pproduction'
+                        }
+                        
+                            else {
+                            echo "moving on .."
+                        }
+                    }
                 }
             }
         }
 
-        stage('Build') {
+        stage('Test') {
             steps {
                 script {
-                    docker.image('maven:3.6.3-jdk-11').inside {
-                        // Use bash explicitly
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${BRANCH_NAME}"'
-                    }
+                    sh 'mvn test'
                 }
             }
         }
@@ -39,10 +44,10 @@ pipeline {
             }
             steps {
                 script {
-                    docker.image('openjdk:11-jre-slim').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app ."'
-                        sh 'bash -c "sudo docker run --name my-app-staging -d my-app"'
-                    }
+                    // Stop and remove existing container if it exists
+                    sh 'if [ "$(docker ps -a -q -f name=my-app-staging)" ]; then docker stop my-app-staging; docker rm my-app-staging; fi'
+                    sh 'docker build -t my-app .'
+                    sh 'docker run --name my-app-staging -d my-app'
                 }
             }
         }
@@ -53,19 +58,23 @@ pipeline {
             }
             steps {
                 script {
-                    docker.image('openjdk:11-jre-slim').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app:prod ."'
-                        sh 'bash -c "sudo docker run --name my-app-prod -d my-app:prod"'
-                    }
+                    // Stop and remove existing container if it exists
+                    sh 'if [ "$(docker ps -a -q -f name=my-app-prod)" ]; then docker stop my-app-prod; docker rm my-app-prod; fi'
+                    sh 'docker build -t my-app:prod .'
+                    sh 'docker run --name my-app-prod -d my-app:prod'
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    // Check for existing containers and destroy them
+                    sh 'if [ "$(docker ps -a -q)" ]; then docker stop $(docker ps -a -q); docker rm $(docker ps -a -q); fi'
                 }
             }
         }
     }
 
-    post {
-        always {
-            junit '**/target/surefire-reports/*.xml'
-            cleanWs()
-        }
-    }
+    
 }
