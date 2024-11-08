@@ -18,11 +18,22 @@ pipeline {
             }
         }
 
+        stage('Debug Environment') {
+            steps {
+                script {
+                    // Print the branch name again to ensure it's available here
+                    sh 'bash -c "echo Branch name in Debug Environment: ${BRANCH_NAME}"'
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${env.BRANCH_NAME}"'
+                        // Use bash explicitly and debug the branch name inside the container
+                        sh 'bash -c "echo Branch name in Build: ${BRANCH_NAME}"'
+                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${BRANCH_NAME}"'
                     }
                 }
             }
@@ -35,6 +46,7 @@ pipeline {
             steps {
                 script {
                     docker.image('openjdk:11-jre-slim').inside {
+                        sh 'bash -c "echo Branch name in Deploy to Staging: ${BRANCH_NAME}"'
                         sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app ."'
                         sh 'bash -c "sudo docker run --name my-app-staging -d my-app"'
                     }
@@ -49,6 +61,7 @@ pipeline {
             steps {
                 script {
                     docker.image('openjdk:11-jre-slim').inside {
+                        sh 'bash -c "echo Branch name in Deploy to Production: ${BRANCH_NAME}"'
                         sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app:prod ."'
                         sh 'bash -c "sudo docker run --name my-app-prod -d my-app:prod"'
                     }
