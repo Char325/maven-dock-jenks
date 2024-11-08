@@ -6,7 +6,7 @@ pipeline {
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
-                        sh 'mvn clean package -P${env.BRANCH_NAME}'
+                        sh 'bash -c "mvn clean package -P${BRANCH_NAME}"'
                     }
                 }
             }
