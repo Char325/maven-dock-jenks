@@ -9,7 +9,7 @@ pipeline {
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
-                        sh 'bash -c "mvn clean package -P${BRANCH_NAME}"'
+                         sh 'cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && bash -c "mvn clean package -P${env.BRANCH_NAME}"'
                     }
                 }
             }
