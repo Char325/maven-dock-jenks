@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 script {
-                    docker.image('openjdk:11-jre-slim').inside {
+                    docker.image('openjdk:11-jre-slim').inside('-v /var/run/docker.sock:/var/run/docker.sock'){
                         sh "docker build -t my-app:prod ."
                         sh 'bash -c "docker run --name my-app-prod -d my-app:prod"'
                     }
