@@ -14,15 +14,7 @@ pipeline {
                     docker.image('maven:3.6.3-jdk-11').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
                         if (env.BRANCH_NAME == 'main') {
                             sh 'mvn clean package -Pdevelopment'
-                        } 
-                        else if(env.BRANCH_NAME == 'staging'){
-                            sh 'mvn clean package -Pstaging'
-                        }
-                        else if(env.BRANCH_NAME == 'production'){
-                            sh 'mvn clean package -Pproduction'
-                        }
-                        
-                            else {
+                        } else {
                             echo "moving on .."
                         }
                     }
@@ -45,7 +37,8 @@ pipeline {
             steps {
                 script {
                     // Stop and remove existing container if it exists
-                    sh 'if [ "$(docker ps -a -q -f name=my-app-staging)" ]; then docker stop my-app-staging; docker rm my-app-staging; fi'
+                    sh 'if [ "$(docker ps -q -f name=my-app-staging)" ]; then docker stop my-app-staging; fi'
+                    sh 'if [ "$(docker ps -aq -f name=my-app-staging)" ]; then docker rm my-app-staging; fi'
                     sh 'docker build -t my-app .'
                     sh 'docker run --name my-app-staging -d my-app'
                 }
@@ -59,7 +52,8 @@ pipeline {
             steps {
                 script {
                     // Stop and remove existing container if it exists
-                    sh 'if [ "$(docker ps -a -q -f name=my-app-prod)" ]; then docker stop my-app-prod; docker rm my-app-prod; fi'
+                    sh 'if [ "$(docker ps -q -f name=my-app-prod)" ]; then docker stop my-app-prod; fi'
+                    sh 'if [ "$(docker ps -aq -f name=my-app-prod)" ]; then docker rm my-app-prod; fi'
                     sh 'docker build -t my-app:prod .'
                     sh 'docker run --name my-app-prod -d my-app:prod'
                 }
@@ -76,5 +70,10 @@ pipeline {
         }
     }
 
-    
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+            cleanWs()
+        }
+    }
 }
