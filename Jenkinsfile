@@ -11,7 +11,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.image('maven:3.6.3-jdk-11').inside {
+                    docker.image('maven:3.6.3-jdk-11').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
                         if (env.BRANCH_NAME == 'main') {
                             sh 'mvn clean package -Pdevelopment'
                         } else {
@@ -36,6 +36,8 @@ pipeline {
             }
             steps {
                 script {
+                    // Stop and remove existing container if it exists
+                    sh 'if [ "$(docker ps -a -q -f name=my-app-staging)" ]; then docker stop my-app-staging; docker rm my-app-staging; fi'
                     sh 'docker build -t my-app .'
                     sh 'docker run --name my-app-staging -d my-app'
                 }
@@ -48,17 +50,23 @@ pipeline {
             }
             steps {
                 script {
+                    // Stop and remove existing container if it exists
+                    sh 'if [ "$(docker ps -a -q -f name=my-app-prod)" ]; then docker stop my-app-prod; docker rm my-app-prod; fi'
                     sh 'docker build -t my-app:prod .'
                     sh 'docker run --name my-app-prod -d my-app:prod'
                 }
             }
         }
-    }
 
-    post {
-        always {
-            junit '**/target/surefire-reports/*.xml' // Specify the directory and file pattern for test reports
-            cleanWs()
+        stage('Cleanup') {
+            steps {
+                script {
+                    // Check for existing containers and destroy them
+                    sh 'if [ "$(docker ps -a -q)" ]; then docker stop $(docker ps -a -q); docker rm $(docker ps -a -q); fi'
+                }
+            }
         }
     }
+
+    
 }
