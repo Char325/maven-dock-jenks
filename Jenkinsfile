@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        // Explicitly set BRANCH_NAME for testing
+        BRANCH_NAME = "${env.BRANCH_NAME}"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -12,7 +17,7 @@ pipeline {
             steps {
                 script {
                     // Print the branch name to verify it's correctly set
-                    sh 'bash -c "echo Branch name is: ${env.BRANCH_NAME}"'
+                    sh 'bash -c "echo Branch name is: ${BRANCH_NAME}"'
                 }
             }
         }
@@ -22,7 +27,7 @@ pipeline {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
                         // Use bash explicitly
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${env.BRANCH_NAME}"'
+                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${BRANCH_NAME}"'
                     }
                 }
             }
