@@ -15,10 +15,10 @@ pipeline {
                         if (env.BRANCH_NAME == 'main') {
                             sh 'mvn clean package -Pdevelopment'
                         } 
-                        else if(env.BRANCH_NAME= 'staging'){
+                        else if(env.BRANCH_NAME == 'staging'){
                             sh 'mvn clean package -Pstaging'
                         }
-                        else if(env.BRANCH_NAME= 'production'){
+                        else if(env.BRANCH_NAME == 'production'){
                             sh 'mvn clean package -Pproduction'
                         }
                         
