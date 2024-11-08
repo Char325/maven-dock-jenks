@@ -14,7 +14,15 @@ pipeline {
                     docker.image('maven:3.6.3-jdk-11').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
                         if (env.BRANCH_NAME == 'main') {
                             sh 'mvn clean package -Pdevelopment'
-                        } else {
+                        } 
+                        else if(env.BRANCH_NAME= 'staging'){
+                            sh 'mvn clean package -Pstaging'
+                        }
+                        else if(env.BRANCH_NAME= 'production'){
+                            sh 'mvn clean package -Pproduction'
+                        }
+                        
+                            else {
                             echo "moving on .."
                         }
                     }
