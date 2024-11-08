@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        BRANCH_NAME = ''
+        ENVIRONMENT = ''  // Placeholder for environment variable
     }
 
     stages {
@@ -10,10 +10,15 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    // Fetch the branch name and set it in the environment variable
-                    env.BRANCH_NAME = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    // Print the branch name to verify it's correctly set
-                    echo "Branch name is: ${env.BRANCH_NAME}"
+                    // Explicitly set the environment based on the branch
+                    if (env.BRANCH_NAME == 'main') {
+                        env.ENVIRONMENT = 'production'
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        env.ENVIRONMENT = 'staging'
+                    } else {
+                        env.ENVIRONMENT = 'development'
+                    }
+                    echo "Environment is: ${env.ENVIRONMENT}"
                 }
             }
         }
@@ -22,7 +27,7 @@ pipeline {
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${env.BRANCH_NAME}"'
+                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${env.ENVIRONMENT}"'
                     }
                 }
             }
@@ -30,7 +35,7 @@ pipeline {
 
         stage('Deploy to Staging') {
             when {
-                branch 'staging'
+                environment name: 'ENVIRONMENT', value: 'staging'
             }
             steps {
                 script {
@@ -44,7 +49,7 @@ pipeline {
 
         stage('Deploy to Production') {
             when {
-                branch 'main'
+                environment name: 'ENVIRONMENT', value: 'production'
             }
             steps {
                 script {
