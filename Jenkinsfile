@@ -18,7 +18,7 @@ pipeline {
                     docker.image('maven:3.6.3-jdk-11').inside {
                         // Use the branch name to select the Maven profile
                         if (env.BRANCH_NAME == 'main') {  
-                        sh 'bash -c "mvn clean package -Pmain"'
+                        sh 'bash -c "mvn clean package -Pdevelopment"'
                         }
                         else{
                             echo"moving on .."
