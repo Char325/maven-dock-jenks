@@ -3,6 +3,9 @@ pipeline {
 
     stages {
         stage('Build') {
+             environment { 
+                 BRANCH_NAME = "${env.BRANCH_NAME}" 
+             }
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
