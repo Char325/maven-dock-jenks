@@ -2,22 +2,32 @@ pipeline {
     agent any
 
     environment {
-        // Explicitly set BRANCH_NAME for testing
-        BRANCH_NAME = "${env.BRANCH_NAME}"
+        ENVIRONMENT = ''
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    // Manually set the environment variable based on the branch name
+                    if (env.BRANCH_NAME == 'main') {
+                        env.ENVIRONMENT = 'production'
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        env.ENVIRONMENT = 'staging'
+                    } else {
+                        env.ENVIRONMENT = 'development'
+                    }
+                    echo "Environment is: ${env.ENVIRONMENT}"
+                }
             }
         }
 
         stage('Debug Environment') {
             steps {
                 script {
-                    // Print the branch name to verify it's correctly set
-                    sh 'bash -c "echo Branch name is: ${BRANCH_NAME}"'
+                    // Print the environment to verify it's correctly set
+                    echo "Debugging - Environment: ${env.ENVIRONMENT}"
                 }
             }
         }
@@ -26,8 +36,9 @@ pipeline {
             steps {
                 script {
                     docker.image('maven:3.6.3-jdk-11').inside {
-                        // Use bash explicitly
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && mvn clean package -P${BRANCH_NAME}"'
+                        // Use workspace variable
+                        sh 'bash -c "echo Build - Environment: ${ENVIRONMENT}"'
+                        sh 'bash -c "cd ${WORKSPACE}/my-app && mvn clean package -P${ENVIRONMENT}"'
                     }
                 }
             }
@@ -35,12 +46,13 @@ pipeline {
 
         stage('Deploy to Staging') {
             when {
-                branch 'staging'
+                environment name: 'ENVIRONMENT', value: 'staging'
             }
             steps {
                 script {
                     docker.image('openjdk:11-jre-slim').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app ."'
+                        sh 'bash -c "echo Deploy to Staging - Environment: ${ENVIRONMENT}"'
+                        sh 'bash -c "cd ${WORKSPACE}/my-app && sudo docker build -t my-app ."'
                         sh 'bash -c "sudo docker run --name my-app-staging -d my-app"'
                     }
                 }
@@ -49,12 +61,13 @@ pipeline {
 
         stage('Deploy to Production') {
             when {
-                branch 'main'
+                environment name: 'ENVIRONMENT', value: 'production'
             }
             steps {
                 script {
                     docker.image('openjdk:11-jre-slim').inside {
-                        sh 'bash -c "cd /var/lib/jenkins/workspace/maven-dock-jenks-pipeline/my-app && sudo docker build -t my-app:prod ."'
+                        sh 'bash -c "echo Deploy to Production - Environment: ${ENVIRONMENT}"'
+                        sh 'bash -c "cd ${WORKSPACE}/my-app && sudo docker build -t my-app:prod ."'
                         sh 'bash -c "sudo docker run --name my-app-prod -d my-app:prod"'
                     }
                 }
